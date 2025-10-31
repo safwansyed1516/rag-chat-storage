@@ -1,0 +1,15 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: Session Service
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/XE
+    username: raguser
+    password: ragpass
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.OracleDialect
+

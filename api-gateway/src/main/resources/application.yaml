@@ -1,0 +1,18 @@
+server:
+  port: 8080
+gateway:
+  api-key: secret-key
+spring:
+  application:
+    name: API Gateway
+  cloud:
+    gateway:
+      routes:
+        - id: session-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/sessions/**
+        - id: message-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/sessions/*/messages/**

@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  oracle-xe:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-xe
+    environment:
+      ORACLE_PASSWORD: ragpass
+      APP_USER: raguser
+      APP_USER_PASSWORD: ragpass
+    ports:
+      - "1521:1521"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'select 1 from dual;' | sqlplus -s SYSTEM/${ORACLE_PASSWORD}@//localhost:1521/XE"]
+      interval: 10s
+      retries: 20
+
+  session-service:
+    build:
+      context: ../session-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-xe:1521/XE
+      SPRING_DATASOURCE_USERNAME: raguser
+      SPRING_DATASOURCE_PASSWORD: ragpass
+    ports:
+      - "8081:8081"
+    depends_on:
+      - oracle-xe
+
+  message-service:
+    build:
+      context: ../message-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-xe:1521/XE
+      SPRING_DATASOURCE_USERNAME: raguser
+      SPRING_DATASOURCE_PASSWORD: ragpass
+    ports:
+      - "8082:8082"
+    depends_on:
+      - oracle-xe
+
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    environment:
+      GATEWAY_API_KEY: secret-key
+    ports:
+      - "8080:8080"
+    depends_on:
+      - session-service
+      - message-service
