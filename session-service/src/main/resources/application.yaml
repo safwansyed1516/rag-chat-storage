@@ -1,15 +1,30 @@
 server:
-  port: 8081
+  port: ${SESSION_SERVICE_PORT:8081}
+
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
-    name: Session Service
+    name: session-service
   datasource:
-    url: jdbc:oracle:thin:@//localhost:1521/XE
-    username: raguser
-    password: ragpass
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@//oracle-xe:1521/XE}
+    username: ${SPRING_DATASOURCE_USERNAME:raguser}
+    password: ${SPRING_DATASOURCE_PASSWORD:ragpass}
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
     hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.OracleDialect
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.OracleDialect}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.rag: ${LOGGING_LEVEL_COM_EXAMPLE_RAG:DEBUG}
