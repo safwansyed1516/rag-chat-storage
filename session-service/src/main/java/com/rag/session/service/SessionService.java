@@ -15,6 +15,7 @@ import java.util.UUID;
 public class SessionService {
   private final SessionRepository repo;
 
+
   public SessionDto create(String title){
     var s = new SessionEntity(); s.setTitle(title);
     return toDto(repo.save(s));

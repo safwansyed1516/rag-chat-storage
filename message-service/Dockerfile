@@ -1,10 +1,22 @@
-# Java 17 runtime
-FROM eclipse-temurin:17-jdk-jammy
+# ======================================
+# 🏗️ Build Stage
+# ======================================
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /build
 
+COPY pom.xml .
+COPY common ./common
+COPY message-service ./message-service
+
+RUN mvn -pl message-service -am clean package -DskipTests
+
+# ======================================
+# 🚀 Runtime Stage
+# ======================================
+FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 
-# Copy jar built from Maven
-COPY target/message-service-1.0.0.jar app.jar
+COPY --from=build /build/message-service/target/message-service-1.0.0.jar app.jar
 
 EXPOSE 8082
 

@@ -1,54 +1,95 @@
 version: '3.9'
 
 services:
+  # ======================================
+  # 🗄️ Oracle XE Database
+  # ======================================
   oracle-xe:
     image: gvenzl/oracle-xe:21-slim
     container_name: oracle-xe
     environment:
-      ORACLE_PASSWORD: ragpass
-      APP_USER: raguser
-      APP_USER_PASSWORD: ragpass
+      ORACLE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      APP_USER: ${SPRING_DATASOURCE_USERNAME}
+      APP_USER_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
     ports:
       - "1521:1521"
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo 'select 1 from dual;' | sqlplus -s SYSTEM/${ORACLE_PASSWORD}@//localhost:1521/XE"]
+      test: ["CMD", "bash", "-c", "echo 'select 1 from dual;' | sqlplus -s SYSTEM/${SPRING_DATASOURCE_PASSWORD}@//localhost:1521/XE"]
       interval: 10s
       retries: 20
 
+  # ======================================
+  # 💬 Session Service
+  # ======================================
   session-service:
     build:
       context: ../session-service
       dockerfile: Dockerfile
+    container_name: session-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-xe:1521/XE
-      SPRING_DATASOURCE_USERNAME: raguser
-      SPRING_DATASOURCE_PASSWORD: ragpass
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      SPRING_JPA_DATABASE_PLATFORM: ${SPRING_JPA_DATABASE_PLATFORM}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT}
+      LOGGING_LEVEL_COM_EXAMPLE_RAG: ${LOGGING_LEVEL_COM_EXAMPLE_RAG}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY}
+      SESSION_SERVICE_PORT: ${SESSION_SERVICE_PORT}
     ports:
-      - "8081:8081"
+      - "${SESSION_SERVICE_PORT}:8081"
     depends_on:
-      - oracle-xe
+      oracle-xe:
+        condition: service_healthy
 
+  # ======================================
+  # 🧠 Message Service
+  # ======================================
   message-service:
     build:
       context: ../message-service
       dockerfile: Dockerfile
+    container_name: message-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-xe:1521/XE
-      SPRING_DATASOURCE_USERNAME: raguser
-      SPRING_DATASOURCE_PASSWORD: ragpass
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      SPRING_JPA_DATABASE_PLATFORM: ${SPRING_JPA_DATABASE_PLATFORM}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT}
+      LOGGING_LEVEL_COM_EXAMPLE_RAG: ${LOGGING_LEVEL_COM_EXAMPLE_RAG}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY}
+      MESSAGE_SERVICE_PORT: ${MESSAGE_SERVICE_PORT}
     ports:
-      - "8082:8082"
+      - "${MESSAGE_SERVICE_PORT}:8082"
     depends_on:
-      - oracle-xe
+      oracle-xe:
+        condition: service_healthy
 
+  # ======================================
+  # 🌐 API Gateway
+  # ======================================
   api-gateway:
     build:
       context: ../api-gateway
       dockerfile: Dockerfile
+    container_name: api-gateway
     environment:
-      GATEWAY_API_KEY: secret-key
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY}
+      SESSION_SERVICE_PORT: ${SESSION_SERVICE_PORT}
+      MESSAGE_SERVICE_PORT: ${MESSAGE_SERVICE_PORT}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT}
+      LOGGING_LEVEL_COM_EXAMPLE_RAG: ${LOGGING_LEVEL_COM_EXAMPLE_RAG}
+      GATEWAY_SERVICE_PORT: ${GATEWAY_SERVICE_PORT}
     ports:
-      - "8080:8080"
+      - "${GATEWAY_SERVICE_PORT}:8080"
     depends_on:
       - session-service
       - message-service
+
+# ======================================
+# 🧩 Common Network
+# ======================================
+networks:
+  default:
+    name: rag-network
